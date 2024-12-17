@@ -484,7 +484,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "./gerbers",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",
@@ -608,6 +608,14 @@
     [
       "aa88a43a-cbc2-42ab-af4f-713f5c8a1356",
       "Root"
+    ],
+    [
+      "4091ccdc-c80b-49e5-8aa1-a1b14b8f9755",
+      "Buttons"
+    ],
+    [
+      "1170be54-a9dc-421e-8460-6770bd298f7f",
+      "encoder_board"
     ]
   ],
   "text_variables": {}

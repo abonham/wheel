@@ -7,8 +7,12 @@
 #include "hardware/timer.h"
 #include "pin_defines.h"
 #include "bootsel_reboot.h"
+#include "wheel.h"
+#include "hid_steering_pad_report.h"
 
 #define DEBUG 1
+
+#define USE_CUSTOM_HID 1
 
 #define USB_POLL_INTERVAL_RATE_FAST 2
 #define USB_POLL_INTERVAL_RATE_SLOW 20
@@ -17,8 +21,15 @@
 // HID report descriptor using TinyUSB's template
 // Single Report (no ID) descriptor
 uint8_t const desc_hid_report[] = {
-  TUD_HID_REPORT_DESC_GAMEPAD()
+ TUD_HID_REPORT_DESC_GAMEPAD()
 };
+
+Adafruit_USBD_HID usb_hid;
+#if USE_CUSTOM_HID
+hid_steering_pad_report_t s_gp;
+#else
+hid_gamepad_report_t gp;
+#endif
 
 #pragma region PIO_Setup
 PIO pio = pio0;
@@ -28,9 +39,6 @@ int last_value = -1, last_delta = -1;
 // CLK = A, B is next pin up from A
 const uint PIN_AB = ENCODER_CLK;
 #pragma endregion PIO - Setup
-
-Adafruit_USBD_HID usb_hid;
-hid_gamepad_report_t gp;
 
 #pragma region state_variables
 int lastClk = HIGH;
@@ -45,38 +53,37 @@ int accMax = 512;
 int brakeMin = 512;
 int brakeMax = 512;
 
-pin_size_t buttons[] = { BTN_A, BTN_B, BTN_X, BTN_Y, BTN_LB, BTN_RB, ACC, BRAKE, BTN_START, BTN_BACK, BTN_GUIDE };
+pin_size_t buttons[] = {B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11};
+#if USE_HAT
 pin_size_t hat[] = { HAT_UP, HAT_DOWN, HAT_LEFT, HAT_RIGHT };
+#endif
 #pragma endregion state_variables
 
-/// @brief Mostly just setting pin modes and starting HID device
-void setup() {
-  if (!TinyUSBDevice.isInitialized()) {
-    TinyUSBDevice.begin(0);
-  }
-
-  Serial.begin(115200);  //super high to avoid slow down with USB polling
-
+void setPinModes() {
   // pinMode(ENCODER_CLK, INPUT_PULLUP);
   // pinMode(ENCODER_DT, INPUT_PULLUP);
 
-  pinMode(BTN_A, INPUT_PULLUP);
-  pinMode(BTN_B, INPUT_PULLUP);
-  pinMode(BTN_X, INPUT_PULLUP);
-  pinMode(BTN_Y, INPUT_PULLUP);
-  pinMode(BTN_LB, INPUT_PULLUP);
-  pinMode(BTN_RB, INPUT_PULLUP);
-  pinMode(BTN_START, INPUT_PULLUP);
-  pinMode(BTN_BACK, INPUT_PULLUP);
-  pinMode(BTN_GUIDE, INPUT_PULLUP);
+  pinMode(B1, INPUT_PULLUP);
+  pinMode(B2, INPUT_PULLUP);
+  pinMode(B3, INPUT_PULLUP);
+  pinMode(B4, INPUT_PULLUP);
+  pinMode(B5, INPUT_PULLUP);
+  pinMode(B6, INPUT_PULLUP);
+  pinMode(B7, INPUT_PULLUP);
+  pinMode(B8, INPUT_PULLUP);
+  pinMode(B9, INPUT_PULLUP);
+  pinMode(B10, INPUT_PULLUP);
+  pinMode(B11, INPUT_PULLUP);
 
-  pinMode(L_X, INPUT);
-  pinMode(L_Y, INPUT);
+  pinMode(L_ANALOG_STICK_X, INPUT);
+  pinMode(L_ANALOG_STICK_Y, INPUT);
 
+  #if USE_HAT
   pinMode(HAT_LEFT, INPUT_PULLUP);
   pinMode(HAT_RIGHT, INPUT_PULLUP);
   pinMode(HAT_UP, INPUT_PULLUP);
   pinMode(HAT_DOWN, INPUT_PULLUP);
+  #endif
 
   pinMode(ACC, INPUT_PULLUP);
   pinMode(BRAKE, INPUT_PULLUP);
@@ -88,18 +95,33 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(0, INPUT_PULLUP);
+}
+
+/// @brief Mostly just setting pin modes and starting HID device
+void setup() {
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+
+  Serial.begin(115200);  //super high to avoid slow down with USB polling
+
+  setPinModes();
 
   digitalWrite(LED_BUILTIN, HIGH);
 
-
   uint8_t rate;
   #if DEBUG
-  rate = USB_POLL_INTERVAL_RATE_VERY_SLOW;
+  rate = USB_POLL_INTERVAL_RATE_SLOW;
   #else
   rate = USB_POLL_INTERVAL_RATE_FAST;
   #endif
   usb_hid.setPollInterval(rate);
+  #if USE_CUSTOM_HID
+  usb_hid.setReportDescriptor(hidReportDescriptor, sizeof(hidReportDescriptor));
+  #else
   usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
+  #endif
+
   usb_hid.begin();
 
   // If already enumerated, additional class driver begin() e.g msc, hid, midi won't take effect until re-enumeration
@@ -131,7 +153,7 @@ void checkRotation() {
   }
 
   int mapped = map(new_value, rotationMin, rotationMax, -127, 127);
-  rotation = mapped;
+  rotation = -mapped;
 }
 
 /// @brief Track the minimum and maximum seen readings from potentiometer and use these as an updated baseline for comparison
@@ -155,6 +177,7 @@ void readButtons(uint32_t *out) {
   }
 }
 
+#if USE_HAT
 /// @brief Map combination of button presses to HID enumeration for Button HATs
 /// @param out
 void readDPad(uint8_t *out) {
@@ -193,6 +216,7 @@ void readDPad(uint8_t *out) {
     *out = GAMEPAD_HAT_CENTERED;
   }
 }
+#endif
 
 /// @brief Main update loop
 void loop() {
@@ -209,14 +233,43 @@ void loop() {
     return;
   }
 
+  PinStatus r;
+  r = digitalRead(ENCODER_RESET);
+  if (r == LOW) { rotation = 0; }
+
   checkRotation();
 
   uint32_t b = 0;
   readButtons(&b);
+
+  #if USE_HAT
   uint8_t dpad = 0;
   readDPad(&dpad);
+  #endif
 
   if (!usb_hid.ready()) return;
+
+  #if USE_CUSTOM_HID
+  s_gp.x = 0;
+  s_gp.y = 0;
+  s_gp.z = 0;
+  s_gp.rx = 0;
+  s_gp.ry = -127;
+  s_gp.rz = -127;
+  s_gp.buttons = 0;
+  s_gp.accelerator = 0;
+  s_gp.brake = 0;
+
+  s_gp.ry = digitalRead(B7) == LOW ? 127 : -127;
+  s_gp.rz = digitalRead(B8) == LOW ? 127 : -127;
+
+  s_gp.steering = rotation;
+  s_gp.buttons = b;
+  s_gp.accelerator = digitalRead(ACC) == LOW ? 127 : -127;
+  s_gp.brake = digitalRead(BRAKE) == LOW ? 127 : -127;
+
+  usb_hid.sendReport(1, &s_gp, sizeof(s_gp));
+  #else
   digitalWrite(LED_BUILTIN, HIGH);
 
   gp.buttons = b;
@@ -228,16 +281,12 @@ void loop() {
   long y_a = analogRead(L_Y);
   long mapped_y = map(y_a, 0, 1024, -127, 127);
   gp.z = mapped_y;
-  
+
   gp.rz = 0;
   gp.ry = 0;
   gp.hat = dpad;
 
   gp.x = (int)rotation;
-
-  PinStatus r;
-  r = digitalRead(ENCODER_RESET);
-  if (r == LOW) { rotation = 0; }
 
   int on = 127;
   int off = -127;
@@ -245,12 +294,13 @@ void loop() {
   gp.ry = digitalRead(BRAKE) == LOW ? on : off;
 
   usb_hid.sendReport(0, &gp, sizeof(gp));
+  #endif
 
   digitalWrite(LED_BUILTIN, LOW);
 
   //Monkey debug dump
 
-  if (DEBUG) {
+  #if DEBUG && !USE_CUSTOM_HID
     Serial.print("rz: ");
     Serial.print(gp.rz);
     Serial.print(", ry: ");
@@ -263,5 +313,5 @@ void loop() {
     Serial.print(gp.x);
     Serial.print(", rotation: ");
     Serial.println(rotation);
-  }
+  #endif
 }

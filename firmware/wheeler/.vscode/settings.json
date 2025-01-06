@@ -22,6 +22,13 @@
         ]
     },
     "files.associations": {
-        "*.txt": "bg3txt"
+        "*.txt": "bg3txt",
+        "initializer_list": "cpp",
+        "list": "cpp",
+        "regex": "cpp",
+        "vector": "cpp",
+        "xhash": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp"
     }
 }

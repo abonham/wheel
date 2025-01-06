@@ -11,4 +11,4 @@ void checkReboot() {
   }
 }
 
-#define USE_BOOTSEL_REBOOT_PIN 0
+#define USE_BOOTSEL_REBOOT_PIN 1

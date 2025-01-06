@@ -1,0 +1,49 @@
+[[applicationCollection]]
+usage = ['Generic Desktop', 'Gamepad']
+
+    [[applicationCollection.inputReport]]
+
+        [[applicationCollection.inputReport.variableItem]]
+        usage = ['Simulation Controls', 'Steering']
+        sizeInBits = 8
+
+        [[applicationCollection.inputReport.variableItem]]
+        usage = ['Simulation Controls', 'Accelerator']
+        sizeInBits = 8
+
+        [[applicationCollection.inputReport.variableItem]]
+        usage = ['Simulation Controls', 'Brake']
+        sizeInBits = 8
+
+        # Two axis rocker (tilting forward/backward and left/right)
+        [[applicationCollection.inputReport.physicalCollection]]
+        usage = ['Generic Desktop', 'Pointer']
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'X']
+            logicalValueRange = [-127, 127]
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'Y']
+            logicalValueRange = [-127, 127]
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'Z']
+            logicalValueRange = [-127, 127]
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'Rx']
+            logicalValueRange = [-127, 127]
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'Ry']
+            logicalValueRange = [-127, 127]
+
+            [[applicationCollection.inputReport.physicalCollection.variableItem]]
+            usage = ['Generic Desktop', 'Rz']
+            logicalValueRange = [-127, 127]
+
+        # 13 buttons
+        [[applicationCollection.inputReport.variableItem]]
+        usageRange = ['Button', 'Button 1', 'Button 16']
+        logicalValueRange = [0, 1]

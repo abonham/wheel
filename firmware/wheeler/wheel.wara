@@ -2,7 +2,6 @@
 usage = ['Generic Desktop', 'Gamepad']
 
     [[applicationCollection.inputReport]]
-
         [[applicationCollection.inputReport.variableItem]]
         usage = ['Generic Desktop', 'X']
         logicalValueRange = [-127, 127]
@@ -32,19 +31,15 @@ usage = ['Generic Desktop', 'Gamepad']
         usageRange = ['Button', 'Button 1', 'Button 16']
         logicalValueRange = [0, 1]
 
-[[applicationCollection]]
-    usage = ['Simulation Controls', 'Automobile Simulation Device']
+        # [[applicationCollection.inputReport.variableItem]]
+        # usage = ['Simulation Controls', 'Steering']
+        # sizeInBits = 8
 
-    [[applicationCollection.inputReport]]
-        [[applicationCollection.inputReport.variableItem]]
-        usage = ['Simulation Controls', 'Steering']
-        sizeInBits = 8
+        # [[applicationCollection.inputReport.variableItem]]
+        # usage = ['Simulation Controls', 'Accelerator']
+        # sizeInBits = 8
 
-        [[applicationCollection.inputReport.variableItem]]
-        usage = ['Simulation Controls', 'Accelerator']
-        sizeInBits = 8
-
-        [[applicationCollection.inputReport.variableItem]]
-        usage = ['Simulation Controls', 'Brake']
-        sizeInBits = 8
+        # [[applicationCollection.inputReport.variableItem]]
+        # usage = ['Simulation Controls', 'Brake']
+        # sizeInBits = 8
 

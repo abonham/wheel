@@ -22,8 +22,6 @@
 #define B10 14  //back
 #define B11 15  //guide
 
-#define BTN_A B1
-
 #if USE_HAT
 #define HAT_UP 22
 #define HAT_DOWN 28
@@ -31,8 +29,10 @@
 #define HAT_RIGHT 26
 #endif
 
-#define ENCODER_RESET 2
+#define ENCODER_RESET 21
 #define DEBUG_PIN 3
 #define RANGE_SELECT_PIN 4
 
 #define RSTICK_SWAP 15
+
+#define BOOTSEL_PIN 0

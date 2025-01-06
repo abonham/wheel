@@ -26,20 +26,16 @@ usage = ['Generic Desktop', 'Gamepad']
         usage = ['Generic Desktop', 'Rz']
         logicalValueRange = [-127, 127]
 
+        [[applicationCollection.inputReport.paddingItem]]
+        sizeInBits = 4
+
+        [[applicationCollection.inputReport.variableItem]]
+        usage = ['Generic Desktop', 'Hat Switch']
+        logicalValueRange = [1,8]
+        physicalValueRange = [0, 315]
+        unit = 'degrees'
+
         # 13 buttons
         [[applicationCollection.inputReport.variableItem]]
         usageRange = ['Button', 'Button 1', 'Button 16']
         logicalValueRange = [0, 1]
-
-        # [[applicationCollection.inputReport.variableItem]]
-        # usage = ['Simulation Controls', 'Steering']
-        # sizeInBits = 8
-
-        # [[applicationCollection.inputReport.variableItem]]
-        # usage = ['Simulation Controls', 'Accelerator']
-        # sizeInBits = 8
-
-        # [[applicationCollection.inputReport.variableItem]]
-        # usage = ['Simulation Controls', 'Brake']
-        # sizeInBits = 8
-

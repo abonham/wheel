@@ -22,6 +22,7 @@ typedef struct TU_ATTR_PACKED
   int8_t  rx;        ///< Delta Rx movement of analog left trigger
   int8_t  ry;        ///< Delta Ry movement of analog right trigger
   int8_t  rz;        ///< Delta Rz movement of right analog-joystick
+  uint8_t hat;
   uint16_t buttons;  ///< Buttons mask for currently pressed buttons
 }hid_game_pad_report_t;
 

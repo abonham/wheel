@@ -10,28 +10,17 @@
 #include "wheel.h"
 #include "hid_steering_pad_report.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define USE_CUSTOM_HID 1
 
-#define USB_POLL_INTERVAL_RATE_FAST 2
+#define USB_POLL_INTERVAL_RATE_FAST 1
 #define USB_POLL_INTERVAL_RATE_SLOW 20
 #define USB_POLL_INTERVAL_RATE_VERY_SLOW 200
 
-// HID report descriptor using TinyUSB's template
-// Single Report (no ID) descriptor
-uint8_t const desc_hid_report[] = {
- TUD_HID_REPORT_DESC_GAMEPAD()
-};
-
 Adafruit_USBD_HID usb_hid;
-#if USE_CUSTOM_HID
-hid_steering_pad_report_t s_gp;
+
 hid_game_pad_report_t report;
-// hid_combind_controls_report_t report;
-#else
-hid_gamepad_report_t gp;
-#endif
 
 #pragma region PIO_Setup
 PIO pio = pio0;
@@ -62,9 +51,6 @@ pin_size_t hat[] = { HAT_UP, HAT_DOWN, HAT_LEFT, HAT_RIGHT };
 #pragma endregion state_variables
 
 void setPinModes() {
-  // pinMode(ENCODER_CLK, INPUT_PULLUP);
-  // pinMode(ENCODER_DT, INPUT_PULLUP);
-
   pinMode(B1, INPUT_PULLUP);
   pinMode(B2, INPUT_PULLUP);
   pinMode(B3, INPUT_PULLUP);
@@ -96,7 +82,7 @@ void setPinModes() {
   pinMode(RSTICK_SWAP, INPUT_PULLUP);
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(0, INPUT_PULLUP);
+  pinMode(BOOTSEL_PIN, INPUT_PULLUP);
 }
 
 /// @brief Mostly just setting pin modes and starting HID device
@@ -118,11 +104,8 @@ void setup() {
   rate = USB_POLL_INTERVAL_RATE_FAST;
   #endif
   usb_hid.setPollInterval(rate);
-  #if USE_CUSTOM_HID
+
   usb_hid.setReportDescriptor(hidReportDescriptor, sizeof(hidReportDescriptor));
-  #else
-  usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
-  #endif
 
   usb_hid.begin();
 
@@ -138,7 +121,7 @@ void setup() {
 }
 
 /// @brief Get rotation amount from PIO
-void checkRotation() {
+int checkRotation() {
   new_value = quadrature_encoder_get_count(pio, sm);
   delta = new_value - old_value;
   old_value = new_value;
@@ -156,6 +139,7 @@ void checkRotation() {
 
   int mapped = map(new_value, rotationMin, rotationMax, -127, 127);
   rotation = -mapped;
+  return rotation;
 }
 
 /// @brief Track the minimum and maximum seen readings from potentiometer and use these as an updated baseline for comparison
@@ -220,6 +204,16 @@ void readDPad(uint8_t *out) {
 }
 #endif
 
+void checkEncoderReset() {
+  PinStatus r;
+  r = digitalRead(ENCODER_RESET);
+  if (r == LOW) {
+    rotationMin = 0;
+    rotationMax = 0;
+    rotation = 0;
+  }
+}
+
 /// @brief Main update loop
 void loop() {
 #if USE_BOOTSEL_REBOOT_PIN
@@ -235,10 +229,7 @@ void loop() {
     return;
   }
 
-  PinStatus r;
-  r = digitalRead(ENCODER_RESET);
-  if (r == LOW) { rotation = 0; }
-
+  checkEncoderReset();
   checkRotation();
 
   uint32_t b = 0;
@@ -251,18 +242,14 @@ void loop() {
 
   if (!usb_hid.ready()) return;
 
-  #if USE_CUSTOM_HID
   report.x = 0;
   report.y = 0;
   report.z = 0;
   report.rx = 0;
   report.ry = -127;
   report.rz = -127;
+  report.hat = GAMEPAD_HAT_CENTERED;
   report.buttons = 0;
-
-  // report.steering = 0;
-  // report.accelerator = -127;
-  // report.brake = -127;
 
   report.x = rotation;
 
@@ -273,44 +260,12 @@ void loop() {
   report.rz = digitalRead(B8) == LOW ? 127 : -127;
   report.buttons = b;
 
-  // report.steering = rotation;
-  // report.accelerator = digitalRead(ACC) == LOW ? 127 : -127;
-  // report.brake = digitalRead(BRAKE) == LOW ? 127 : -127;
-
   usb_hid.sendReport(1, &report, sizeof(report));
-
-#else
-  digitalWrite(LED_BUILTIN, HIGH);
-
-  gp.buttons = b;
-
-  long x_a = analogRead(L_X);
-  long mapped_x = map(x_a, 0, 1024, -127, 127);
-  gp.y = mapped_x;
-
-  long y_a = analogRead(L_Y);
-  long mapped_y = map(y_a, 0, 1024, -127, 127);
-  gp.z = mapped_y;
-
-  gp.rz = 0;
-  gp.ry = 0;
-  gp.hat = dpad;
-
-  gp.x = (int)rotation;
-
-  int on = 127;
-  int off = -127;
-  gp.rx = digitalRead(ACC) == LOW ? on : off;
-  gp.ry = digitalRead(BRAKE) == LOW ? on : off;
-
-  usb_hid.sendReport(0, &gp, sizeof(gp));
-  #endif
 
   digitalWrite(LED_BUILTIN, LOW);
 
   //Monkey debug dump
-
-  #if DEBUG && !USE_CUSTOM_HID
+  #if DEBUG
     Serial.print("rz: ");
     Serial.print(gp.rz);
     Serial.print(", ry: ");

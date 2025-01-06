@@ -5,6 +5,10 @@ extern "C" {
   #include "pico/bootrom.h"
 }
 
+#ifndef BOOTSEL_PIN
+#include "pin_defines.h"
+#endif
+
 void checkReboot() {
   if (digitalRead(0) == LOW) {
     reset_usb_boot(1<<LED_BUILTIN,0); //invokes reset into bootloader mode

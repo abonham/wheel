@@ -27,6 +27,7 @@ uint8_t const desc_hid_report[] = {
 Adafruit_USBD_HID usb_hid;
 #if USE_CUSTOM_HID
 hid_steering_pad_report_t s_gp;
+hid_game_pad_report_t gp;
 #else
 hid_gamepad_report_t gp;
 #endif
@@ -250,26 +251,34 @@ void loop() {
   if (!usb_hid.ready()) return;
 
   #if USE_CUSTOM_HID
-  s_gp.x = 0;
-  s_gp.y = 0;
-  s_gp.z = 0;
-  s_gp.rx = 0;
-  s_gp.ry = -127;
-  s_gp.rz = -127;
-  s_gp.buttons = 0;
-  s_gp.accelerator = 0;
-  s_gp.brake = 0;
+  gp.x = 0;
+  gp.y = 0;
+  gp.z = 0;
+  gp.rx = 0;
+  gp.ry = -127;
+  gp.rz = -127;
+  gp.buttons = 0;
 
-  s_gp.ry = digitalRead(B7) == LOW ? 127 : -127;
-  s_gp.rz = digitalRead(B8) == LOW ? 127 : -127;
+  s_gp.steering = 0;
+  s_gp.accelerator = -127;
+  s_gp.brake = -127;
+
+  gp.x = map(analogRead(L_ANALOG_STICK_X), 0, 1024, -127, 127);
+  gp.y = map(analogRead(L_ANALOG_STICK_Y), 0, 1024, -127, 127);
+  gp.ry = digitalRead(B7) == LOW ? 127 : -127;
+  gp.rz = digitalRead(B8) == LOW ? 127 : -127;
+  gp.buttons = b;
 
   s_gp.steering = rotation;
-  s_gp.buttons = b;
   s_gp.accelerator = digitalRead(ACC) == LOW ? 127 : -127;
   s_gp.brake = digitalRead(BRAKE) == LOW ? 127 : -127;
 
-  usb_hid.sendReport(1, &s_gp, sizeof(s_gp));
-  #else
+  // usb_hid.sendReport(2, &s_gp, sizeof(s_gp));
+  usb_hid.sendReport(1, &gp, sizeof(gp));
+
+  usb_hid.sendReport(2, &s_gp, sizeof(s_gp));
+
+#else
   digitalWrite(LED_BUILTIN, HIGH);
 
   gp.buttons = b;
